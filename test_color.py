@@ -9,7 +9,8 @@ from scipy.stats import kurtosis, skew
 
 def RGB_color_extracting(img_path):
     img = cv2.imread(img_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
     grid_size = 3
     height, width, channels = img.shape
     grid_h, grid_w = int(height/grid_size), int(width/grid_size)
@@ -18,7 +19,7 @@ def RGB_color_extracting(img_path):
 
     for i in range(grid_size):
         for j in range(grid_size):
-            roi = img[i*grid_h:(i+1)*grid_h, j*grid_w:(j+1)*grid_w]
+            roi = img[i*grid_h:(i + 1)*grid_h, j*grid_w:(j + 1)*grid_w]
 
             for c in range(channels):
                 mean = np.mean(roi[:,:,c])
@@ -34,7 +35,8 @@ def RGB_color_extracting(img_path):
 
 def LAB_color_extracting(img_path):
     img = cv2.imread(img_path)
-
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    
     grid_size = 3
     height, width, channels = img.shape
     grid_h, grid_w = int(height/grid_size), int(width/grid_size)
@@ -60,18 +62,17 @@ def LAB_color_extracting(img_path):
 def GSL_color_extracting(img_path):
     img = cv2.imread(img_path)
 
-    region1 = img[:200]
-    region2 = img[200:]
-
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     cieluv = cv2.cvtColor(img, cv2.COLOR_BGR2Luv)
 
-    channels = [("G", region1[:, :, 1]), ("S", hsv[:, :, 1]), ("L", cieluv[:, :, 0])]
+    channels = [("G", rgb[:, :, 1]), ("S", hsv[:, :, 1]), ("L", cieluv[:, :, 0])]
 
     features = np.zeros((2, 3, 3))
 
     for i in range(2):
         for j, col in enumerate(channels):
+            print(col[1].shape)
             channel_name, channel_data = col
 
             if i == 0:
@@ -88,5 +89,5 @@ def GSL_color_extracting(img_path):
 
 img_path = '/home/phannhat/Documents/code/NCKH/dataset/Acrocarpus fraxinifolius/0101.jpg'
 
-print(LAB_color_extracting(img_path).shape)
+# print(GSL_color_extracting(img_path).shape)
 

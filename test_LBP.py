@@ -24,8 +24,7 @@ def LBP(image, P, R):
     return result
 
 # Đọc ảnh từ file
-image_path = "/home/phannhat/Downloads/328470375_736803774452022_3681962831180984142_n.jpg"
-
+image_path = '/home/phannhat/Documents/code/NCKH/dataset/Acrocarpus fraxinifolius/0101.jpg'
 image = Image.open(image_path)
 
 transform = transforms.Compose([
@@ -37,8 +36,7 @@ gray_image = transform(image)[0]
 
 gray_image = np.array(gray_image)
 
-
 # Tính toán LBP với P=8, R=1
 lbp_image = LBP(gray_image, 8, 1)
 
-print(lbp_image)
+print(lbp_image.shape)
