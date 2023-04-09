@@ -1,5 +1,9 @@
 #Ignore Mac Files
-.DS_Store
+**/.DS_Store
+
+#Ignore spare folders
+**/__pycache__
 
 #Ignore Dataset folder
 /wood_dataset
+/dataset

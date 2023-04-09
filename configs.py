@@ -4,6 +4,8 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Wood Classification', add_help=False)
     
     # Train parameters
+    parser.add_argument('--input_size', default = 256, type = int,
+                        help = "Input size of image")
     parser.add_argument('--batch_size', default=32, type=int,
                         help='Per GPU batch size')
     parser.add_argument('--num_workers', default = 8, type=int,
@@ -21,7 +23,7 @@ def get_args_parser():
     parser.add_argument('--verbose', action = "store_true",
                         help = "Display prediction from model")
     # Model parameters
-    parser.add_argument('--model', default="tft", type=str, metavar='MODEL',
+    parser.add_argument('--model', default="vit", type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument('--model_ver', default = 0, type = int,
                         help ="Number of version of model")
@@ -55,12 +57,8 @@ def get_args_parser():
     
 
     # Dataset parameters
-    parser.add_argument("--station", default = "v1", type = str, 
-                        help = "Choose station (v1,v2,y6,y7) as target")
-    parser.add_argument('--target', default = "power_generation", type = str,
-                        help = "Choose target feature (power_generation / power_demand)")
-    parser.add_argument('--target_mode', default = "single", type = str,
-                        help = "Multiple target or single target (power_generation/power_demand)")
+    parser.add_argument("--nb_classes", default = 46, type = int,
+                        help = "Number of classes in classification")
     parser.add_argument('--data_dir', default='./data/2023_devday_data/', type=str,
                         help='dataset path')
     parser.add_argument('--data_output_dir', default='./dataset/', type =str,
