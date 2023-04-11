@@ -17,12 +17,17 @@ def create_optimizer(args, model, get_num_layer = None, get_layer_scale = None, 
     opt_lower = args.opt.lower()
     weight_decay = args.weight_decay
 
-    skip = model.no_weight_decay()
+    #skip = model.no_weight_decay()
     parameters = model.parameters()
 
     opt_args = dict(lr = args.lr, weight_decay = weight_decay)
+    if hasattr(args, 'opt_eps') and args.opt_eps is not None:
+        opt_args['eps'] = args.opt_eps
+    if hasattr(args, 'opt_betas') and args.opt_betas is not None:
+        opt_args['betas'] = args.opt_betas
+
     if opt_lower == "adam":
-        optimizer = optim.Adam(parameters, momentum = args.momentum, nesterov= True, **opt_args)
+        optimizer = optim.Adam(parameters, **opt_args)
         
     
     return optimizer

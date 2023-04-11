@@ -1,7 +1,6 @@
 import os
 from torchvision import datasets, transforms
 
-from augment import get_transforms
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
 
 from timm.data import create_transform
@@ -19,36 +18,36 @@ def build_dataset(args, is_train):
     return dataset, nb_classes
 
 def build_transform(args, is_train):
-    resize_img = args.input_size > 32
-    mean = args.data_mean if args.data_mean != None else IMAGENET_DEFAULT_MEAN
-    std = args.data_std if args.data_std != None else IMAGENET_DEFAULT_STD
+    resize_im = args.input_size > 32
+    mean = args.data_mean if args.data_mean_std != None else IMAGENET_DEFAULT_MEAN
+    std = args.data_std if args.data_mean_std != None else IMAGENET_DEFAULT_STD
     
     if is_train:
+        # this should always dispatch to transforms_imagenet_train
+
         transform = create_transform(
-            input_size= args.input_size,
-            is_training= True,
-            color_jitter= args.color_jitter,
-            auto_augment= args.aa,
-            hflip = args.hflip,
-            vflip = args.vflip, 
-            interpolation= args.train_interpolation,
-            re_prob = args.reprob,
-            re_mode = args.remode,
-            re_count = args.recount,
-            mean = mean,
-            std = std
+            input_size=args.input_size,
+            is_training=True,
+            color_jitter=args.color_jitter,
+            auto_augment=args.aa,
+            hflip=args.hflip,
+            vflip=args.vflip,
+            interpolation=args.train_interpolation,
+            re_prob=args.reprob,
+            re_mode=args.remode,
+            re_count=args.recount,
+            mean=mean,
+            std=std,
         )
 
-        if not resize_img:
+        if not resize_im:
             transform.transforms[0] = transforms.RandomCrop(
-                args.input_size, padding=4
-            )
-        
+                args.input_size, padding=4)
         return transform
-    
+
 
     t = []
-    if not resize_img:
+    if resize_im:
         # warping (no cropping) when evaluated at 384 or larger
         if args.input_size >= 384:  
             t.append(

@@ -12,27 +12,30 @@ import warnings
 
 import torch
 from torch.utils.data import DataLoader
+import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
 # Own packages
+from models.BaseModel import WoodModel
+
 from configs import get_args_parser
 from datasets import build_dataset
 from optim_factory import create_optimizer
+
 from utils import Data_Visualize 
 from utils import NativeScalerWithGradNormCount as NativeScaler
-from utils import TensorBoardLogger, WandbLogger
+from utils import TBLogger, WdbLogger, create_callbacks_loggers
+from utils import save_model
+
 from engine import train_one_epoch
 
-
+# Lightning Package
+import pytorch_lightning as pl
 # Timm packages
 from timm.models import create_model
-from timm.scheduler import CosineLRScheduler
-
-class Model():
-    def __init__(self):
-        pass
+        
 
 def main(args):
     print(args)
@@ -53,39 +56,58 @@ def main(args):
     else:
         valset, _ = build_dataset(args, is_train = False)
     
-
     # Build DataLoader
     data_loader_train = DataLoader(
         dataset= trainset,
         batch_size = args.batch_size,
         num_workers = args.num_workers,
         pin_memory= args.pin_mem,
-        drop_last = False
+        drop_last = True
     )
+    
+    if valset is not None:
+        data_loader_val = DataLoader(
+            dataset = valset, 
+            batch_size=int(1.5 * args.batch_size),
+            num_workers=args.num_workers,
+            pin_memory=args.pin_mem,
+            drop_last=False
+        )
+    else:
+        data_loader_val = None
     
     # Visualize the dataset if set args.data_verbose
     if args.data_verbose:
         Data_Visualize(args,trainset)
-        
-    model = create_model(
+
+    '''model = create_model(
         args.model,
         pretrained = False,
         num_classes = args.nb_classes,
         drop_path_rate = args.drop_path,
         layer_scale_init_value = args.layer_scale_init_value,
         head_init_scale = args.head_init_scale
-    )
+    )'''
+    criterion = torch.nn.CrossEntropyLoss()
     
+    print("criterion = %s" % str(criterion))
+        
     if args.finetune:
         pass
-
+    
+    model = create_model(
+        model_name=args.model_name,
+        pretrained=False,
+        num_classes = args.nb_classes,
+        drop_path_rate = args.dropout
+    )
     model.to(device)
 
     model_without_ddp = model
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    #n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print("Model = %s" % str(model_without_ddp))
-    print('number of params:', n_parameters)
+    #print('number of params:', n_parameters)
     print('number of classes:', args.nb_classes)
 
     total_batch_size = args.batch_size * args.update_freq
@@ -98,10 +120,15 @@ def main(args):
     print("Number of training training per epoch = %d" % num_training_steps_per_epoch)
 
     # Logging Writer
-    if args.log_write == "tensorboard":
-        log_writer = TensorBoardLogger()
-    elif args.wandb_logger:
-        wandb_logger = WandbLogger()
+    if args.log_dir is not None:
+        log_writer = TBLogger(args)
+    else:
+        log_writer = None
+
+    if args.enable_wandb:
+        wandb_logger = WdbLogger(args)
+    else:
+        wandb_logger = None
 
     optimizer = create_optimizer(
         args, model_without_ddp, skip_list= None
@@ -110,21 +137,38 @@ def main(args):
     loss_scaler = NativeScaler()
     
     print("Use cosine LR Scheduler")
-    lr_scheduler_values = utils.cosine_scheduler(
-        args.lr, args.min_lr, args.epochs, num_training_steps_per_epoch, warmup_epochs = args.warmup_epochs, warmup_steps = args.warmup_steps
-    )
+    #lr_scheduler_values = utils.cosine_scheduler(
+    #    args.lr, args.min_lr, args.epochs, num_training_steps_per_epoch, warmup_epochs = args.warmup_epochs, warmup_steps = args.warmup_steps
+    #)
     
-    criterion = torch.nn.CrossEntropyLoss()
-    
-    print("criterion = %s" % str(criterion))
 
     max_accuracy = 0.0
-    if args.model_ema and args.model_ema_eval:
-        max_accuracy_ema = 0.0
+    #if args.model_ema and args.model_ema_eval:
+    #    max_accuracy_ema = 0.0
+    
+    callback, logger = create_callbacks_loggers(args = args, log_writer = log_writer, wandb_logger = wandb_logger)
+
+    model = WoodModel(args, model_name = args.model_name, criterion = criterion, optimizer = optimizer, dropout = args.dropout)
+
+    trainer = pl.Trainer(
+        max_epochs = args.epochs,
+        accelerator= accelerator,
+        devices = 1,
+        enable_model_summary= True,
+        gradient_clip_val= args.clip_grad,
+        #callbacks=callback,
+        #logger = logger,
+        log_every_n_steps=args.log_interval
+    )
 
     print("Start training for {} epochs".format(args.epochs))
     start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
+    trainer.fit(
+        model = model,
+        train_dataloaders= data_loader_train,
+        val_dataloaders = data_loader_val,
+    )
+    '''for epoch in range(args.start_epoch, args.epochs):
         if log_writer is not None:
             log_writer.set_step(epoch * num_training_steps_per_epoch * args.update_freq)
         if wandb_logger:
@@ -138,7 +182,10 @@ def main(args):
                 utils.save_model(   
                     args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                     loss_scaler=loss_scaler, epoch=epoch, model_ema=model_ema)
-        
+
+            if data_loader_val is not None:
+                pass'''
+    
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))

@@ -4,12 +4,14 @@ import argparse
 import torch
 import numpy as np
 
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-class TensorBoardLogger(object):
-    pass
+def TBLogger(args):
+    return TensorBoardLogger()
 
-class WandbLogger(object):
-    pass
+def WdbLogger(args):
+    return WandbLogger()
 
 def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
     if isinstance(parameters, torch.Tensor):
@@ -53,6 +55,22 @@ class NativeScalerWithGradNormCount:
     def load_state_dict(self, state_dict):
         self._scaler.load_state_dict(state_dict)
 
+def consine_scheduler():
+    pass
+def save_model():
+    pass
 def Data_Visualize(args, dataset):
     
     pass
+
+def create_callbacks_loggers(args, **kwargs):
+    callbacks = []
+    loggers = []
+
+    for key, fun in kwargs.items():
+        if "log" in key:
+            loggers.append(fun)
+        else:
+            callbacks.append(fun)
+    
+    return callbacks, loggers 
