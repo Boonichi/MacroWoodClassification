@@ -1,8 +1,11 @@
 import os
 import argparse
 
-import torch
+import matplotlib.pyplot as plt
 import numpy as np
+
+import torch
+import torch.distributed as dist
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -59,10 +62,15 @@ def consine_scheduler():
     pass
 def save_model():
     pass
-def Data_Visualize(args, dataset):
-    
-    pass
 
+def Data_Visualize(dataloader):
+    for index, (imgs, labels) in enumerate(dataloader):
+        for img_idx, img in enumerate(imgs):
+            print(img)
+            plt.imshow(img.permute(1,2,0))
+            plt.show()
+            print(f"Label: {labels[img_idx]}")
+        break
 def create_callbacks_loggers(args, **kwargs):
     callbacks = []
     loggers = []
@@ -74,3 +82,22 @@ def create_callbacks_loggers(args, **kwargs):
             callbacks.append(fun)
     
     return callbacks, loggers 
+
+def is_dist_avail_and_initialized():
+    if not dist.is_available():
+        return False
+    if not dist.is_initialized():
+        return False
+    return True
+
+
+def get_world_size():
+    if not is_dist_avail_and_initialized():
+        return 1
+    return dist.get_world_size()
+
+
+def get_rank():
+    if not is_dist_avail_and_initialized():
+        return 0
+    return dist.get_rank()

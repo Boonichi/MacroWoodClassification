@@ -1,17 +1,15 @@
 import argparse
 
 def get_args_parser():
-<<<<<<< HEAD
     parser = argparse.ArgumentParser('MacroWoodClassification Configs', add_help=False)
     
     # Train parameters
-=======
+
     parser = argparse.ArgumentParser('Wood Classification', add_help=False)
     
     # Train parameters
     parser.add_argument('--input_size', default = 224, type = int,
                         help = "Input size of image")
->>>>>>> pipeline
     parser.add_argument('--batch_size', default=32, type=int,
                         help='Per GPU batch size')
     parser.add_argument('--num_workers', default = 8, type=int,
@@ -24,7 +22,6 @@ def get_args_parser():
     parser.add_argument('--finetune', action = "store_true",
                         help = "Finetuning model with exist checkpoint")
     parser.add_argument('--cpkt_dir', default = "model_logs", type = str)
-<<<<<<< HEAD
 
     # Predict parameters
     parser.add_argument('--test', action = "store_true",
@@ -34,70 +31,52 @@ def get_args_parser():
     # Model parameters
     parser.add_argument('--model', default='TFT', type=str, metavar='MODEL',
                         help='Name of model to train')
-=======
     parser.add_argument('--log_dir', default=None,
                         help='path where to tensorboard log')
 
-    # Predict parameters
-    parser.add_argument('--verbose', action = "store_true",
-                        help = "Display prediction from model")
     # Model parameters
     parser.add_argument('--model_name', default="resnet18", type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument('--model_ver', default = 0, type = int,
                         help ="Number of version of model")
->>>>>>> pipeline
     parser.add_argument('--config', default = None,
                         help = "Add config file that include model params")
     parser.add_argument('--dropout', type=float, default=0.1,
                         help='Dropout (Default: 0.1)')
-    parser.add_argument('--clip_grad', type = float, default = 0.1, metavar="NORM",
-                        help='Clip gradient norm (default: None, no clipping)')
     parser.add_argument('--hidden_size', type = int, default = 64,
                         help = "Size of hidden layer of model")
-    parser.add_argument('--hidden_continuous_size', type = int, default=8,
-                        help = "Size of hidden continuous layer of model")
     parser.add_argument('--attention_head', type = int, default = 4,
                         help = "Number of attention head in Transformer Architecture")
-    parser.add_argument('--loss', type = str, default = "QuantileLoss",
-                        help = "Loss Function (Quantile Loss, RMSE, MAE)")
     parser.add_argument('--log_interval', type = int, default = 10,
                         help = "Log Interval")
     
-    # Hyperparams Optimaztion
-    parser.add_argument("--param_optimize", action = "store_true",
-                        help = "Find best params for model")
     # Optimization parameters
-<<<<<<< HEAD
-    parser.add_argument("--opt", default = "ranger", type = str, metavar = 'OPTIMIZER',
-=======
-    parser.add_argument("--opt", default = "adam", type = str, metavar = 'OPTIMIZER',
->>>>>>> pipeline
-                        help = "Optimizer function (ranger, adam)")
-    parser.add_argument("--lr", default = 1.e-2, type = int,
-                        help = "learning rate of optimizer")
-    parser.add_argument("--patience", default = 3, type = int,
-                        help = "Patience number for Early Stopping")
-<<<<<<< HEAD
-    
-
-    # Dataset parameters
-    parser.add_argument('--data_dir', default='./dataset/', type=str,
-                        help='dataset path')
-    parser.add_argument('--eval_data_path', default=None, type=str,
-                        help='dataset path for evaluation')
-    parser.add_argument('--output_dir', default='./',
-                        help='path where to save, empty for no saving')
-=======
-    parser.add_argument('--weight_decay', type=float, default=0.05,
-                        help='weight decay (default: 0.05)')
-    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
-                        help='SGD momentum (default: 0.9)')
+    parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
+                        help='Optimizer (default: "adam"')
     parser.add_argument('--opt_eps', default=1e-8, type=float, metavar='EPSILON',
                         help='Optimizer Epsilon (default: 1e-8)')
     parser.add_argument('--opt_betas', default=None, type=float, nargs='+', metavar='BETA',
                         help='Optimizer Betas (default: None, use opt default)')
-    
+    parser.add_argument('--clip_grad', type=float, default=0.1, metavar='NORM',
+                        help='Clip gradient norm (default: None, no clipping)')
+    parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
+                        help='SGD momentum (default: 0.9)')
+    parser.add_argument('--weight_decay', type=float, default=0.05,
+                        help='weight decay (default: 0.05)')
+    parser.add_argument('--weight_decay_end', type=float, default=None, help="""Final value of the
+        weight decay. We use a cosine schedule for WD and using a larger decay by
+        the end of training improves performance for ViTs.""")
+    parser.add_argument('--use_polyloss', action='store_true',
+                        help='Optimizer (default: "adamw"')
+    parser.add_argument('--lr', type=float, default=4e-2, metavar='LR',
+                        help='learning rate (default: 4e-2), with total batch size 4096')
+    parser.add_argument('--layer_decay', type=float, default=1.0)
+    parser.add_argument('--min_lr', type=float, default=1e-6, metavar='LR',
+                        help='lower lr bound for cyclic schedulers that hit 0 (1e-6)')
+    parser.add_argument('--warmup_epochs', type=int, default=20, metavar='N',
+                        help='epochs to warmup LR, if scheduler supports')
+    parser.add_argument('--warmup_steps', type=int, default=-1, metavar='N',
+                        help='num of steps to warmup LR, will overload warmup_epochs if set > 0')
 
     # Dataset parameters
     parser.add_argument("--nb_classes", default = 46, type = int,
@@ -111,16 +90,13 @@ def get_args_parser():
                         help='path where to save, empty for no saving')
     parser.add_argument('--disable_eval', type=bool, default=False,
                         help='Disabling evaluation during training')
->>>>>>> pipeline
     parser.add_argument('--device', default='mps',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--name', default='', type=str)
-<<<<<<< HEAD
     parser.add_argument('--max_encoder_day', default = 7, type = int)
     parser.add_argument('--max_pred_day', default = 30, type = int)
 
-=======
     parser.add_argument('--pin_mem', type=bool, default=True,
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     
@@ -138,7 +114,7 @@ def get_args_parser():
                         help='Label smoothing (default: 0.1)')
     parser.add_argument('--train_interpolation', type=str, default='bicubic',
                         help='Training interpolation (random, bilinear, bicubic default: "bicubic")')
-    parser.add_argument('--data_mean_std', default = None, type = str,
+    parser.add_argument('--data_mean_std', default = "ImageFolder", type = str,
                         help = "Normalize dataset with data mean and std (ImageNet)")
     
     # * Random Erase params
@@ -155,11 +131,10 @@ def get_args_parser():
     parser.add_argument('--crop_pct', type=float, default=None)
 
     # Verbose parameters
-    parser.add_argument("--data_verbose", default = False, type = bool,
+    parser.add_argument("--data_verbose", action = "store_true",
                         help = "Display/Visualize data in data loader")
     
     # Weights and Biases arguments
     parser.add_argument('--enable_wandb', type=bool, default=False,
                         help="enable logging to Weights and Biases")
->>>>>>> pipeline
     return parser

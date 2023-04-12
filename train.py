@@ -24,17 +24,14 @@ from configs import get_args_parser
 from datasets import build_dataset
 from optim_factory import create_optimizer
 
-from utils import Data_Visualize 
-from utils import NativeScalerWithGradNormCount as NativeScaler
-from utils import TBLogger, WdbLogger, create_callbacks_loggers
-from utils import save_model
+import utils
 
 from engine import train_one_epoch
 
 # Lightning Package
 import pytorch_lightning as pl
 # Timm packages
-from timm.models import create_model
+from timm import create_model
         
 
 def main(args):
@@ -45,7 +42,7 @@ def main(args):
     devices = 0 if args.device == "cpu" else 1
 
     #Fix the seed for reproducibility
-    seed = args.seed 
+    seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
     
@@ -56,9 +53,18 @@ def main(args):
     else:
         valset, _ = build_dataset(args, is_train = False)
     
+    num_tasks = utils.get_world_size()
+    global_rank = utils.get_rank()
+
+    sampler_train = torch.utils.data.DistributedSampler(
+        trainset, num_replicas=num_tasks, rank=global_rank, shuffle=True, seed=args.seed,
+    )
+    print("Sampler_train = %s" % str(sampler_train))
+
     # Build DataLoader
     data_loader_train = DataLoader(
         dataset= trainset,
+        sampler = sampler_train,
         batch_size = args.batch_size,
         num_workers = args.num_workers,
         pin_memory= args.pin_mem,
@@ -66,8 +72,12 @@ def main(args):
     )
     
     if valset is not None:
+        sampler_val = torch.utils.data.SequentialSampler(valset)
+        print("Sampler_val = %s" % str(sampler_val))
+        
         data_loader_val = DataLoader(
             dataset = valset, 
+            sampler = sampler_val,
             batch_size=int(1.5 * args.batch_size),
             num_workers=args.num_workers,
             pin_memory=args.pin_mem,
@@ -78,16 +88,9 @@ def main(args):
     
     # Visualize the dataset if set args.data_verbose
     if args.data_verbose:
-        Data_Visualize(args,trainset)
+        utils.Data_Visualize(data_loader_train)
+        return
 
-    '''model = create_model(
-        args.model,
-        pretrained = False,
-        num_classes = args.nb_classes,
-        drop_path_rate = args.drop_path,
-        layer_scale_init_value = args.layer_scale_init_value,
-        head_init_scale = args.head_init_scale
-    )'''
     criterion = torch.nn.CrossEntropyLoss()
     
     print("criterion = %s" % str(criterion))
@@ -99,15 +102,14 @@ def main(args):
         model_name=args.model_name,
         pretrained=False,
         num_classes = args.nb_classes,
-        drop_path_rate = args.dropout
     )
-    model.to(device)
+    #model.to(device)
 
     model_without_ddp = model
-    #n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print("Model = %s" % str(model_without_ddp))
-    #print('number of params:', n_parameters)
+    print('number of params:', n_parameters)
     print('number of classes:', args.nb_classes)
 
     total_batch_size = args.batch_size * args.update_freq
@@ -121,12 +123,12 @@ def main(args):
 
     # Logging Writer
     if args.log_dir is not None:
-        log_writer = TBLogger(args)
+        log_writer = utils.TBLogger(args)
     else:
         log_writer = None
 
     if args.enable_wandb:
-        wandb_logger = WdbLogger(args)
+        wandb_logger = utils.WdbLogger(args)
     else:
         wandb_logger = None
 
@@ -134,7 +136,7 @@ def main(args):
         args, model_without_ddp, skip_list= None
     )
     
-    loss_scaler = NativeScaler()
+    loss_scaler = utils.NativeScalerWithGradNormCount()
     
     print("Use cosine LR Scheduler")
     #lr_scheduler_values = utils.cosine_scheduler(
@@ -146,19 +148,20 @@ def main(args):
     #if args.model_ema and args.model_ema_eval:
     #    max_accuracy_ema = 0.0
     
-    callback, logger = create_callbacks_loggers(args = args, log_writer = log_writer, wandb_logger = wandb_logger)
+    callback, logger = utils.create_callbacks_loggers(args = args, log_writer = log_writer, wandb_logger = wandb_logger)
 
-    model = WoodModel(args, model_name = args.model_name, criterion = criterion, optimizer = optimizer, dropout = args.dropout)
-
+    model = WoodModel(args, model_name = args.model_name, criterion = criterion, optimizer = optimizer, device = device)
+    model.to(device)
     trainer = pl.Trainer(
         max_epochs = args.epochs,
         accelerator= accelerator,
         devices = 1,
-        enable_model_summary= True,
+        #enable_model_summary= True,
         gradient_clip_val= args.clip_grad,
         #callbacks=callback,
         #logger = logger,
-        log_every_n_steps=args.log_interval
+        #log_every_n_steps=args.log_interval,
+        inference_mode=False
     )
 
     print("Start training for {} epochs".format(args.epochs))
@@ -167,6 +170,7 @@ def main(args):
         model = model,
         train_dataloaders= data_loader_train,
         val_dataloaders = data_loader_val,
+        
     )
     '''for epoch in range(args.start_epoch, args.epochs):
         if log_writer is not None:
