@@ -30,8 +30,10 @@ from engine import train_one_epoch
 
 # Lightning Package
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 # Timm packages
 from timm import create_model
+from timm.loss import LabelSmoothingCrossEntropy
         
 
 def main(args):
@@ -90,23 +92,13 @@ def main(args):
     if args.data_verbose:
         utils.Data_Visualize(data_loader_train)
         return
-
-    criterion = torch.nn.CrossEntropyLoss()
     
-    print("criterion = %s" % str(criterion))
-        
-    if args.finetune:
-        pass
-    
-    model = create_model(
+    model_without_ddp = create_model(
         model_name=args.model_name,
         pretrained=False,
         num_classes = args.nb_classes,
     )
-    #model.to(device)
-
-    model_without_ddp = model
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    n_parameters = sum(p.numel() for p in model_without_ddp.parameters() if p.requires_grad)
 
     print("Model = %s" % str(model_without_ddp))
     print('number of params:', n_parameters)
@@ -121,75 +113,82 @@ def main(args):
     print("Number of training examples = %d" % len(trainset))
     print("Number of training training per epoch = %d" % num_training_steps_per_epoch)
 
-    # Logging Writer
+    # Logging Writer (TensorBoard/ Wandb)
+    logger = []
     if args.log_dir is not None:
         log_writer = utils.TBLogger(args)
+        logger.append(log_writer)
     else:
         log_writer = None
 
     if args.enable_wandb:
-        wandb_logger = utils.WdbLogger(args)
+        if not args.wandb_key:
+            raise AssertionError("Please add your Wandb API key")
+        else:
+            wandb_logger = utils.WbLogger(args)
+            logger.append(wandb_logger)
     else:
         wandb_logger = None
 
-    optimizer = create_optimizer(
-        args, model_without_ddp, skip_list= None
-    )
+    # Criterion
+    if args.smoothing > 0:
+        criterion = LabelSmoothingCrossEntropy(smoothing = args.smoothing)
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
     
+    print("criterion = %s" % str(criterion))
+        
+    # Loss Scaler
     loss_scaler = utils.NativeScalerWithGradNormCount()
     
+    # Learning Rate Scheduler
     print("Use cosine LR Scheduler")
-    #lr_scheduler_values = utils.cosine_scheduler(
-    #    args.lr, args.min_lr, args.epochs, num_training_steps_per_epoch, warmup_epochs = args.warmup_epochs, warmup_steps = args.warmup_steps
-    #)
+    
+    # Callbacks, Logger
+    early_stop_callback = EarlyStopping(monitor = "val_loss", min_delta = 1e-7, patience = args.patience, verbose = True, mode = "min")
+    model_checkpoint = ModelCheckpoint(monitor = "val_loss", save_last = True, save_top_k = 1, mode = "min", verbose = True)
+    lr_monitor = LearningRateMonitor(logging_interval = "epoch")
+    
+    # Create Model
+    model = WoodModel(args, model_name = args.model_name, 
+                      criterion = criterion, 
+                      )
     
 
-    max_accuracy = 0.0
-    #if args.model_ema and args.model_ema_eval:
-    #    max_accuracy_ema = 0.0
-    
-    callback, logger = utils.create_callbacks_loggers(args = args, log_writer = log_writer, wandb_logger = wandb_logger)
-
-    model = WoodModel(args, model_name = args.model_name, criterion = criterion, optimizer = optimizer, device = device)
-    model.to(device)
+    # Setup Trainer
     trainer = pl.Trainer(
         max_epochs = args.epochs,
         accelerator= accelerator,
         devices = 1,
-        #enable_model_summary= True,
-        gradient_clip_val= args.clip_grad,
-        #callbacks=callback,
-        #logger = logger,
-        #log_every_n_steps=args.log_interval,
-        inference_mode=False
+        enable_model_summary= False,
+        #gradient_clip_val= args.clip_grad,
+        callbacks=[early_stop_callback, model_checkpoint, lr_monitor],
+        logger = logger,
     )
 
+    # Finetune Process
+    if args.finetune:
+        wandb_logger.init(resume = True)
+        path = args.output_dir + "model_logs/{}".format(args.model_name) + "/lightning_logs/"
+        newest_version = max([os.path.join(path,d) for d in os.listdir(path) if d.startswith("version")], key=os.path.getmtime) + "/checkpoints"
+        if args.finetune == "last":
+            checkpoint = os.listdir(newest_version)[1]
+        else: 
+            checkpoint = os.listdir(newest_version)[0]
+        
+        model = model.load_from_checkpoint(checkpoint)
+
+    model.to(device)
+
+    # Train Process
     print("Start training for {} epochs".format(args.epochs))
     start_time = time.time()
     trainer.fit(
         model = model,
         train_dataloaders= data_loader_train,
         val_dataloaders = data_loader_val,
-        
     )
-    '''for epoch in range(args.start_epoch, args.epochs):
-        if log_writer is not None:
-            log_writer.set_step(epoch * num_training_steps_per_epoch * args.update_freq)
-        if wandb_logger:
-            wandb_logger.set_steps()
-        
-        train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch, loss_scaler, args.clip_grad
-        )
-        if args.output_dir and args.save_ckpt:
-            if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
-                utils.save_model(   
-                    args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                    loss_scaler=loss_scaler, epoch=epoch, model_ema=model_ema)
 
-            if data_loader_val is not None:
-                pass'''
-    
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))

@@ -10,11 +10,25 @@ import torch.distributed as dist
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-def TBLogger(args):
-    return TensorBoardLogger()
+import wandb
 
-def WdbLogger(args):
-    return WandbLogger()
+def TBLogger(args):
+    logger = TensorBoardLogger(args.output_dir + "{}/{}".format(args.log_dir,args.model_name))
+    return logger
+
+def WbLogger(args):
+    # Intialize wandb environment
+    if args.wandb_key != None:
+        os.environ["WANDB_API_KEY"] = args.wandb_key
+
+    wandb_logger = WandbLogger(
+        project = "MacroWoodClassification",
+        save_dir = args.log_dir,
+        name = args.model_name,
+    )
+    wandb_logger.experiment.config.update(args)
+    
+    return wandb_logger
 
 def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
     if isinstance(parameters, torch.Tensor):
@@ -58,7 +72,7 @@ class NativeScalerWithGradNormCount:
     def load_state_dict(self, state_dict):
         self._scaler.load_state_dict(state_dict)
 
-def consine_scheduler():
+def cosine_scheduler():
     pass
 def save_model():
     pass
@@ -71,17 +85,6 @@ def Data_Visualize(dataloader):
             plt.show()
             print(f"Label: {labels[img_idx]}")
         break
-def create_callbacks_loggers(args, **kwargs):
-    callbacks = []
-    loggers = []
-
-    for key, fun in kwargs.items():
-        if "log" in key:
-            loggers.append(fun)
-        else:
-            callbacks.append(fun)
-    
-    return callbacks, loggers 
 
 def is_dist_avail_and_initialized():
     if not dist.is_available():

@@ -19,8 +19,8 @@ def get_args_parser():
                         help='gradient accumulation steps')
 
     # Finetune paramaters:
-    parser.add_argument('--finetune', action = "store_true",
-                        help = "Finetuning model with exist checkpoint")
+    parser.add_argument('--finetune', default = None, type = str,
+                        help = "Finetuning model with exist checkpoint (best/last)")
     parser.add_argument('--cpkt_dir', default = "model_logs", type = str)
 
     # Predict parameters
@@ -28,11 +28,6 @@ def get_args_parser():
                         help = "Test Process")
     parser.add_argument('--verbose', action = "store_true",
                         help = "Display prediction from model")
-    # Model parameters
-    parser.add_argument('--model', default='TFT', type=str, metavar='MODEL',
-                        help='Name of model to train')
-    parser.add_argument('--log_dir', default=None,
-                        help='path where to tensorboard log')
 
     # Model parameters
     parser.add_argument('--model_name', default="resnet18", type=str, metavar='MODEL',
@@ -88,15 +83,13 @@ def get_args_parser():
                         help='dataset path for evaluation')
     parser.add_argument('--output_dir', default='./',
                         help='path where to save, empty for no saving')
+    parser.add_argument('--log_dir', default=None,
+                        help='path where to tensorboard log')
     parser.add_argument('--disable_eval', type=bool, default=False,
                         help='Disabling evaluation during training')
     parser.add_argument('--device', default='mps',
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
-    parser.add_argument('--name', default='', type=str)
-    parser.add_argument('--max_encoder_day', default = 7, type = int)
-    parser.add_argument('--max_pred_day', default = 30, type = int)
-
     parser.add_argument('--pin_mem', type=bool, default=True,
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     
@@ -110,7 +103,7 @@ def get_args_parser():
                         help='Color jitter factor (default: 0.4)')
     parser.add_argument('--aa', type=str, default='rand-m9-mstd0.5-inc1', metavar='NAME',
                         help='Use AutoAugment policy. "v0" or "original". " + "(default: rand-m9-mstd0.5-inc1)'),
-    parser.add_argument('--smoothing', type=float, default=0.1,
+    parser.add_argument('--smoothing', type=float, default=0,
                         help='Label smoothing (default: 0.1)')
     parser.add_argument('--train_interpolation', type=str, default='bicubic',
                         help='Training interpolation (random, bilinear, bicubic default: "bicubic")')
@@ -137,4 +130,8 @@ def get_args_parser():
     # Weights and Biases arguments
     parser.add_argument('--enable_wandb', type=bool, default=False,
                         help="enable logging to Weights and Biases")
+    parser.add_argument('--wandb_key', type = str, default = None,
+                        help ="API key of wandb")
+    parser.add_argument("--patience", type = int, default = 5,
+                        help="Patience number for early stopping")
     return parser
