@@ -21,29 +21,46 @@ def get_args_parser():
     # Finetune paramaters:
     parser.add_argument('--finetune', default = None, type = str,
                         help = "Finetuning model with exist checkpoint (best/last)")
-    parser.add_argument('--cpkt_dir', default = "model_logs", type = str)
+    parser.add_argument('--head_init_scale', default=1.0, type=float,
+                        help='classifier head initial scale, typically adjusted in fine-tuning')
 
     # Predict parameters
     parser.add_argument('--test', action = "store_true",
                         help = "Test Process")
     parser.add_argument('--verbose', action = "store_true",
                         help = "Display prediction from model")
+    
+    # * Mixup params
+    parser.add_argument('--mixup', type=float, default=0.0,
+                        help='mixup alpha, mixup enabled if > 0.')
+    parser.add_argument('--cutmix', type=float, default=0.0,
+                        help='cutmix alpha, cutmix enabled if > 0.')
+    parser.add_argument('--cutmix_minmax', type=float, nargs='+', default=None,
+                        help='cutmix min/max ratio, overrides alpha and enables cutmix if set (default: None)')
+    parser.add_argument('--mixup_prob', type=float, default=0.0,
+                        help='Probability of performing mixup or cutmix when either/both is enabled')
+    parser.add_argument('--mixup_switch_prob', type=float, default=0.0,
+                        help='Probability of switching to cutmix when both mixup and cutmix enabled')
+    parser.add_argument('--mixup_mode', type=str, default='batch',
+                        help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # Model parameters
-    parser.add_argument('--model_name', default="resnet18", type=str, metavar='MODEL',
+    parser.add_argument('--model', default="resnet18", type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument('--model_ver', default = 0, type = int,
                         help ="Number of version of model")
     parser.add_argument('--config', default = None,
                         help = "Add config file that include model params")
-    parser.add_argument('--dropout', type=float, default=0.1,
-                        help='Dropout (Default: 0.1)')
-    parser.add_argument('--hidden_size', type = int, default = 64,
-                        help = "Size of hidden layer of model")
-    parser.add_argument('--attention_head', type = int, default = 4,
-                        help = "Number of attention head in Transformer Architecture")
-    parser.add_argument('--log_interval', type = int, default = 10,
-                        help = "Log Interval")
+    parser.add_argument('--drop_path', type=float, default=0, metavar='PCT',
+                        help='Drop path rate (default: 0.0)')
+    parser.add_argument('--layer_scale_init_value', default=1e-6, type=float,
+                        help="Layer scale initial values")
+    
+    # EMA related parameters
+    parser.add_argument('--model_ema', type=bool, default=False)
+    parser.add_argument('--model_ema_decay', type=float, default=0.9999, help='')
+    parser.add_argument('--model_ema_force_cpu', type=bool, default=False, help='')
+    parser.add_argument('--model_ema_eval', type=bool, default=False, help='Using ema to eval during training.')
     
     # Optimization parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
@@ -74,6 +91,8 @@ def get_args_parser():
                         help='num of steps to warmup LR, will overload warmup_epochs if set > 0')
 
     # Dataset parameters
+    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
+                        help='start epoch')
     parser.add_argument("--nb_classes", default = 46, type = int,
                         help = "Number of classes in classification")
     parser.add_argument('--data_dir', default='./dataset/fold_0/train', type=str,
@@ -81,9 +100,9 @@ def get_args_parser():
     parser.add_argument('--data_set', default = "image_folder", type = str)
     parser.add_argument('--eval_data_dir', default="./dataset/fold_0/val", type=str,
                         help='dataset path for evaluation')
-    parser.add_argument('--output_dir', default='./',
+    parser.add_argument('--output_dir', default='./checkpoints/',
                         help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default=None,
+    parser.add_argument('--log_dir', default="model_logs",
                         help='path where to tensorboard log')
     parser.add_argument('--disable_eval', type=bool, default=False,
                         help='Disabling evaluation during training')
@@ -92,6 +111,12 @@ def get_args_parser():
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--pin_mem', type=bool, default=True,
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
+    parser.add_argument('--auto_resume', type=bool, default=True)
+    parser.add_argument('--resume', default='',
+                        help='resume from checkpoint')
+    parser.add_argument('--save_ckpt', type=bool, default=True)
+    parser.add_argument('--save_ckpt_freq', default=1, type=int)
+    parser.add_argument('--save_ckpt_num', default=3, type=int)
     
     
     # Augmentation parameters
@@ -128,10 +153,14 @@ def get_args_parser():
                         help = "Display/Visualize data in data loader")
     
     # Weights and Biases arguments
-    parser.add_argument('--enable_wandb', type=bool, default=False,
+    parser.add_argument('--enable_wandb', type=bool, default=True,
                         help="enable logging to Weights and Biases")
+    parser.add_argument('--project', type = str, default = "MacroWoodClassification")
     parser.add_argument('--wandb_key', type = str, default = None,
                         help ="API key of wandb")
     parser.add_argument("--patience", type = int, default = 5,
                         help="Patience number for early stopping")
+    
+    parser.add_argument('--use_amp', type=bool, default=False, 
+                        help="Use PyTorch's AMP (Automatic Mixed Precision) or not")
     return parser
