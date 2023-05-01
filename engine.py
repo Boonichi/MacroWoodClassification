@@ -12,6 +12,9 @@ import torch
 from timm.data import Mixup
 from timm.utils import accuracy, ModelEma
 
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+
+
 import utils
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -82,7 +85,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 if model_ema is not None:
                     model_ema.update(model)
 
-        #torch.cuda.synchronize()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        
 
         if mixup_fn is None:
             class_acc = (output.max(-1)[-1] == targets).float().mean()
@@ -159,15 +164,28 @@ def evaluate(data_loader, model, device, use_amp=False):
             output = model(images)
             loss = criterion(output, target)
 
+        #Accuracy
         acc1 = accuracy(output, target)
         acc5 = accuracy(output, target)
         acc1 = torch.tensor(acc1)
         acc5 = torch.tensor(acc5)
 
+        #F1, Precision, Recall, ROC_AUC
+        #F1_Score = f1_score(output, target)
+        #Precision_Score = precision_score(output, target)
+        #Recall_Score = recall_score(output, target)
+        #ROC_AUC = roc_auc_score(output, target)
+        
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
         metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
+
+        #metric_logger.meters['F1'].update(F1_Score, n = batch_size)
+        #metric_logger.meters['Precision'].update(Precision_Score, n = batch_size)
+        #metric_logger.meters['Recall'].update(Recall_Score, n = batch_size)
+        #metric_logger.meters['ROC_AUC'].update(ROC_AUC, n = batch_size)
+
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'
