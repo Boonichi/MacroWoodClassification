@@ -10,8 +10,8 @@ from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMA
 
 from timm.data import create_transform
 
-IMAGE_FOLDER_MEAN = (0.4875, 0.4194, 0.3976)
-IMAGE_FOLDER_STD = (0.0332, 0.0276, 0.0245)
+IMAGE_FOLDER_MEAN = (0.4895, 0.4201, 0.3983)
+IMAGE_FOLDER_STD = (0.0336, 0.0276, 0.0243)
 
 def meanstd(dl):
     batch,sum_,sqr_=0,0,0
@@ -33,8 +33,9 @@ def build_dataset(args, is_train):
     if args.data_set == "image_folder":
         root = args.data_dir if is_train else args.eval_data_dir
         dataset = datasets.ImageFolder(root, transform=transform)
+        print("Size of dataset: ",len(dataset))
         nb_classes = args.nb_classes
-        #meanstd(DataLoader(dataset))
+        #print(meanstd(DataLoader(dataset)))
         assert len(dataset.class_to_idx) == nb_classes
     else:
         raise NotImplementedError()
@@ -49,6 +50,9 @@ def build_transform(args, is_train):
     elif args.data_mean_std == "ImageFolder":
         mean = IMAGE_FOLDER_MEAN
         std = IMAGE_FOLDER_STD
+    elif args.data_mean_std == "Original":
+        mean = [0,0,0]
+        std = [1,1,1]
     
     if is_train:
         # this should always dispatch to transforms_imagenet_train
@@ -56,14 +60,14 @@ def build_transform(args, is_train):
         transform = create_transform(
             input_size=args.input_size,
             is_training=True,
-            color_jitter=args.color_jitter,
+            #color_jitter=args.color_jitter,
             #auto_augment=args.aa,
             hflip=args.hflip,
             vflip=args.vflip,
-            interpolation=args.train_interpolation,
-            re_prob=args.reprob,
-            re_mode=args.remode,
-            re_count=args.recount,
+            #interpolation=args.train_interpolation,
+            #re_prob=args.reprob,
+            #re_mode=args.remode,
+            #re_count=args.recount,
             mean=mean,
             std=std,
         )
