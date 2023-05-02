@@ -11,7 +11,7 @@ from collections import deque, defaultdict
 
 import torch
 import torch.distributed as dist
-from torch._six import inf
+from torch import inf
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
 
@@ -200,6 +200,7 @@ class WandbLogger(object):
         if self._wandb.run is None:
             self._wandb.init(
                 project=args.project,
+                name = args.model,
                 config=args
             )
 
@@ -336,12 +337,10 @@ def is_main_process():
 def Data_Visualize(dataloader):
     for index, (imgs, labels) in enumerate(dataloader):
         for img_idx, img in enumerate(imgs):
-            print(img)
+            plt.title(f"Label: {labels[img_idx]}")
             plt.imshow(img.permute(1,2,0))
             plt.show()
-            print(f"Label: {labels[img_idx]}")
         break
-
 def is_dist_avail_and_initialized():
     if not dist.is_available():
         return False

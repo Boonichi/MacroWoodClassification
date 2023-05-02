@@ -123,14 +123,14 @@ def main(args):
             num_classes=args.nb_classes, 
             drop_path_rate=args.drop_path,
             layer_scale_init_value=args.layer_scale_init_value,
-            head_init_scale=args.head_init_scale,
+            head_init_scale=args.head_init_scale, 
         )
     else:
         model = create_model(
             args.model,
             pretrained = False,
             num_classes = args.nb_classes,
-            drop_path_rate = args.drop_path
+            #drop_path_rate = args.drop_path
         )
     
     # Finetune Process
@@ -231,7 +231,7 @@ def main(args):
     max_accuracy = 0.0
     if args.model_ema and args.model_ema_eval:
         max_accuracy_ema = 0.0
-        
+
     # Train Process
     print("Start training for {} epochs".format(args.epochs))
     start_time = time.time()
@@ -270,6 +270,12 @@ def main(args):
                 log_writer.update(test_acc1=test_stats['acc1'], head="perf", step=epoch)
                 log_writer.update(test_acc5=test_stats['acc5'], head="perf", step=epoch)
                 log_writer.update(test_loss=test_stats['loss'], head="perf", step=epoch)
+                #log_writer.update(test_F1 = test_stats['F1'], head = "perf", step = epoch)
+                #log_writer.update(test_Precision = test_stats['Precision'], head = "perf", step = epoch)
+                #log_writer.update(test_Recall = test_stats['Recall'], head = "perf", step = epoch)
+                #log_writer.update(test_ROC_AUC = test_stats['ROC_AUC'], head = "perf", step = epoch)
+                
+
 
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                          **{f'test_{k}': v for k, v in test_stats.items()},
