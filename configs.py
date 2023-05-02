@@ -45,7 +45,7 @@ def get_args_parser():
                         help='How to apply mixup/cutmix params. Per "batch", "pair", or "elem"')
 
     # Model parameters
-    parser.add_argument('--model', default="resnet18", type=str, metavar='MODEL',
+    parser.add_argument('--model', default="resnet152d", type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument('--model_ver', default = 0, type = int,
                         help ="Number of version of model")
@@ -132,8 +132,8 @@ def get_args_parser():
                         help='Label smoothing (default: 0.1)')
     parser.add_argument('--train_interpolation', type=str, default='bicubic',
                         help='Training interpolation (random, bilinear, bicubic default: "bicubic")')
-    parser.add_argument('--data_mean_std', default = "ImageFolder", type = str,
-                        help = "Normalize dataset with data mean and std (ImageNet)")
+    parser.add_argument('--data_mean_std', default = "Original", type = str,
+                        help = "Normalize dataset with data mean and std (ImageNet/ImageFolder/Original)")
     
     # * Random Erase params
     parser.add_argument('--reprob', type=float, default=0.25, metavar='PCT',
@@ -153,14 +153,18 @@ def get_args_parser():
                         help = "Display/Visualize data in data loader")
     
     # Weights and Biases arguments
-    parser.add_argument('--enable_wandb', type=bool, default=True,
+    parser.add_argument('--enable_wandb', type=bool, default=False,
                         help="enable logging to Weights and Biases")
     parser.add_argument('--project', type = str, default = "MacroWoodClassification")
     parser.add_argument('--wandb_key', type = str, default = None,
                         help ="API key of wandb")
+    parser.add_argument('--wandb_ckpt', type=bool, default=False,
+                        help="Save model checkpoints as W&B Artifacts.")
     parser.add_argument("--patience", type = int, default = 5,
                         help="Patience number for early stopping")
     
+    
     parser.add_argument('--use_amp', type=bool, default=False, 
                         help="Use PyTorch's AMP (Automatic Mixed Precision) or not")
+    
     return parser
