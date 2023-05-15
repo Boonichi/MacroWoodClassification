@@ -2,38 +2,82 @@ import os
 import pandas as pd
 from pathlib import Path
 import argparse
+import json
 import shutil
+import re
 
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from cv2 import imread
 
-DATA_DIR = "./wood_dataset/"
+DATA_DIR = "./datasets/"
+BRAZIL_WOOD_DIR = DATA_DIR + "brazillian_dataset/"
+MENDELEY_WOOD_DIR = DATA_DIR + "mendeley_dataset/"
+WOOD_AUTH_DIR = DATA_DIR + "Wood_AUTH/"
+FSD_M_DIR = DATA_DIR + "FSD_M/"
 OUTPUT_DIR = "./dataset/"
-NUM_FOLDS = 4
+NUM_FOLDS = 2
 SEED = 43
+
+def identify_wood_name_and_label(data_dir : str, folder):
+    if "brazillian"in data_dir:
+        label, wood_name = folder.split("-")
+        dataset_name = "brazillian"
+    elif "Wood_AUTH" in data_dir:
+        label, wood_name = folder.split(".")    
+        dataset_name = "Wood_Auth"        
+    elif "mendeley" in data_dir:
+        wood_name = folder
+        label = None
+        dataset_name = "mendeley"
+    elif "FSD_M" in data_dir:
+        label, wood_name = folder.split(".")[0], folder.split(".")[1]
+        dataset_name = "Wood_Auth"
+
+    if wood_name is not None and wood_name[0] == "_": wood_name = wood_name[1:]
+    return dataset_name, wood_name, label
+
+def read_folder_dataset(df : list,data_dirs : str):
+
+    # Create csv file include image path and its label
+    for data_dir in data_dirs:
+        for folder in os.listdir(data_dir):
+            if (folder != ".DS_Store"):
+                dataset_name, wood_name, label = identify_wood_name_and_label(data_dir, folder)
+                for image in os.listdir(os.path.join(data_dir, folder)):
+                    if (image.endswith(".jpg") or image.endswith(".png")) or image.endswith(".bmp"):
+                        imgpath = os.path.join(data_dir, folder, image)
+                        sample = {}
+                        sample["imgpath"] = imgpath
+                        sample["label"] = label
+                        sample["wood_name"] = wood_name
+                        sample["dataset"] = dataset_name
+
+                        df.append(sample)
+
+    return df
 
 def prepare_data():
     df = []
-
-    # Create csv file include image path and its label
-    for folder in os.listdir(DATA_DIR):
-        if (folder != ".DS_Store"):
-            label, wood_name = folder.split("-")
-
-            for image in os.listdir(os.path.join(DATA_DIR, folder)):
-                if (image.endswith("")):
-                    imgpath = os.path.join(DATA_DIR, folder, image)
-                    sample = {}
-                    sample["imgpath"] = imgpath
-                    sample["label"] = label
-                    sample["wood_name"] = wood_name
-                
-                    df.append(sample)
-
+    df = read_folder_dataset(df,[BRAZIL_WOOD_DIR, MENDELEY_WOOD_DIR, WOOD_AUTH_DIR, FSD_M_DIR])
     df = pd.DataFrame(df)
+    print(df)
+    df.to_csv(os.path.join(OUTPUT_DIR, "full_dataset.csv"))
+
+    # Label encoder wood_name feature
+    LE = LabelEncoder()
+    df["label"] = LE.fit_transform(df["wood_name"])
+
+    # Name Mapping
+    LE_name_mapping = {i: l for i, l in enumerate(LE.classes_)}
+
+    f = open(os.path.join(OUTPUT_DIR,"name_mapping.json"), "w")
+    json.dump(LE_name_mapping, f)
+    f.close()
 
     # Split train/set
+    
     X_train, X_test, Y_train, Y_test = train_test_split(df,df["label"], stratify=df["label"], test_size = 0.2)
 
     df_train = X_train.reset_index()
