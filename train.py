@@ -122,7 +122,7 @@ def main(args):
             pretrained=False, 
             num_classes=args.nb_classes, 
             drop_path_rate=args.drop_path,
-            layer_scale_init_value=args.layer_scale_init_value,
+            ls_init_value =args.layer_scale_init_value,
             head_init_scale=args.head_init_scale, 
         )
     else:
@@ -296,8 +296,8 @@ def main(args):
         if wandb_logger:
             wandb_logger.log_epoch_metrics(log_stats)
 
-    if wandb_logger and args.wandb_ckpt and args.save_ckpt and args.output_dir:
-        wandb_logger.log_checkpoints()
+        if wandb_logger and args.wandb_ckpt and args.save_ckpt and args.output_dir:
+            wandb_logger.log_checkpoints()
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
