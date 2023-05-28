@@ -38,7 +38,7 @@ class WoodModel(pl.LightningModule):
         z= self.model(x)
         loss= self.criterion(z,y)
         self.log('train_loss',loss)
-        return loss
+        return loss 
     
     def validation_step(self,dl,idx):
         x,y=dl
