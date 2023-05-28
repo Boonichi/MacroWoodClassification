@@ -37,7 +37,7 @@ from timm.models import create_model
 from timm.loss import LabelSmoothingCrossEntropy
 from timm.utils import ModelEma
 from timm.data.mixup import Mixup
-        
+import models.convnext        
 
 def main(args):
     print(args)
@@ -122,8 +122,8 @@ def main(args):
             pretrained=False, 
             num_classes=args.nb_classes, 
             drop_path_rate=args.drop_path,
-            ls_init_value =args.layer_scale_init_value,
-            head_init_scale=args.head_init_scale, 
+            layer_scale_init_value=args.layer_scale_init_value,
+            head_init_scale=args.head_init_scale,
         )
     else:
         model = create_model(
@@ -152,7 +152,7 @@ def main(args):
             checkpoint_model = checkpoint
         state_dict = model.state_dict()
         for k in ['head.weight', 'head.bias']:
-            if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
+            if k in checkpoint_model.keys() and checkpoint_model[k].shape != state_dict[k].shape:
                 print(f"Removing key {k} from pretrained checkpoint")
                 del checkpoint_model[k]
         utils.load_state_dict(model, checkpoint_model, prefix=args.model_prefix)
@@ -270,12 +270,6 @@ def main(args):
                 log_writer.update(test_acc1=test_stats['acc1'], head="perf", step=epoch)
                 log_writer.update(test_acc5=test_stats['acc5'], head="perf", step=epoch)
                 log_writer.update(test_loss=test_stats['loss'], head="perf", step=epoch)
-                #log_writer.update(test_F1 = test_stats['F1'], head = "perf", step = epoch)
-                #log_writer.update(test_Precision = test_stats['Precision'], head = "perf", step = epoch)
-                #log_writer.update(test_Recall = test_stats['Recall'], head = "perf", step = epoch)
-                #log_writer.update(test_ROC_AUC = test_stats['ROC_AUC'], head = "perf", step = epoch)
-                
-
 
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                          **{f'test_{k}': v for k, v in test_stats.items()},

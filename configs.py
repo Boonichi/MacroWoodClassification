@@ -23,6 +23,7 @@ def get_args_parser():
                         help = "Finetuning model with exist checkpoint (best/last)")
     parser.add_argument('--head_init_scale', default=1.0, type=float,
                         help='classifier head initial scale, typically adjusted in fine-tuning')
+    parser.add_argument('--model_prefix', default='', type=str)
 
     # Predict parameters
     parser.add_argument('--test', action = "store_true",
@@ -47,6 +48,8 @@ def get_args_parser():
     # Model parameters
     parser.add_argument('--model', default="resnet152d", type=str, metavar='MODEL',
                         help='Name of model to train')
+    parser.add_argument('--model_key', default='model|module', type=str,
+                        help='which key to load from saved state dict, usually model or model_ema')
     parser.add_argument('--model_ver', default = 0, type = int,
                         help ="Number of version of model")
     parser.add_argument('--config', default = None,
@@ -80,8 +83,8 @@ def get_args_parser():
         the end of training improves performance for ViTs.""")
     parser.add_argument('--use_polyloss', action='store_true',
                         help='Optimizer (default: "adamw"')
-    parser.add_argument('--lr', type=float, default=4e-2, metavar='LR',
-                        help='learning rate (default: 4e-2), with total batch size 4096')
+    parser.add_argument('--lr', type=float, default=4e-5, metavar='LR',
+                        help='learning rate (default: 4e-5), with total batch size 4096')
     parser.add_argument('--layer_decay', type=float, default=1.0)
     parser.add_argument('--min_lr', type=float, default=1e-6, metavar='LR',
                         help='lower lr bound for cyclic schedulers that hit 0 (1e-6)')
@@ -93,7 +96,7 @@ def get_args_parser():
     # Dataset parameters
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
-    parser.add_argument("--nb_classes", default = 46, type = int,
+    parser.add_argument("--nb_classes", default = 75, type = int,
                         help = "Number of classes in classification")
     parser.add_argument('--data_dir', default='./dataset/fold_0/train', type=str,
                         help='dataset path')
