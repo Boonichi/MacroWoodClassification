@@ -17,7 +17,7 @@ MENDELEY_WOOD_DIR = DATA_DIR + "mendeley_dataset/"
 WOOD_AUTH_DIR = DATA_DIR + "Wood_AUTH/"
 FSD_M_DIR = DATA_DIR + "FSD_M/"
 OUTPUT_DIR = "./dataset/"
-NUM_FOLDS = 2
+NUM_FOLDS = 4
 SEED = 43
 
 def identify_wood_name_and_label(data_dir : str, folder):
@@ -33,7 +33,7 @@ def identify_wood_name_and_label(data_dir : str, folder):
         dataset_name = "mendeley"
     elif "FSD_M" in data_dir:
         label, wood_name = folder.split(".")[0], folder.split(".")[1]
-        dataset_name = "Wood_Auth"
+        dataset_name = "FSD_M"
 
     if wood_name is not None and wood_name[0] == "_": wood_name = wood_name[1:]
     return dataset_name, wood_name, label
@@ -115,7 +115,7 @@ def prepare_data():
             img_name = src_dir.split("/")[-1]
             wood_name = row["wood_name"]
 
-            destination_dir = f"{train_path}{wood_name}/{img_name}"
+            destination_dir = f"{train_path}{wood_name}"
             os.makedirs(destination_dir, exist_ok=True)
             
             shutil.copy(src_dir, destination_dir)
@@ -125,7 +125,7 @@ def prepare_data():
             img_name = src_dir.split("/")[-1]
             wood_name = row["wood_name"]
 
-            destination_dir = f"{val_path}{wood_name}/{img_name}"
+            destination_dir = f"{val_path}{wood_name}"
             os.makedirs(destination_dir, exist_ok=True)
             
             shutil.copy(src_dir, destination_dir)
