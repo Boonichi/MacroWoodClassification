@@ -27,6 +27,11 @@ try:
 except ImportError:
     has_apex = False
 
+try:
+    from lion_pytorch import Lion
+    has_lion = True
+except ImportError:
+    has_lion = False
 
 def get_num_layer_for_convnext(var_name):
     """
@@ -165,7 +170,7 @@ def create_optimizer(args, model, get_num_layer=None, get_layer_scale=None, filt
         optimizer = Adahessian(parameters, **opt_args)
     elif opt_lower == 'rmsprop':
         optimizer = optim.RMSprop(parameters, alpha=0.9, momentum=args.momentum, **opt_args)
-    elif opt_lower == 'rmsproptf':
+    elif opt_lower == 'rmsproptf':s
         optimizer = RMSpropTF(parameters, alpha=0.9, momentum=args.momentum, **opt_args)
     elif opt_lower == 'novograd':
         optimizer = NovoGrad(parameters, **opt_args)
@@ -186,6 +191,9 @@ def create_optimizer(args, model, get_num_layer=None, get_layer_scale=None, filt
     elif opt_lower == 'fusednovograd':
         opt_args.setdefault('betas', (0.95, 0.98))
         optimizer = FusedNovoGrad(parameters, **opt_args)
+    elif opt_lower == 'lion':
+        opt_args.pop('eps', None)
+        optimizer = Lion(parameters, **opt_args)
     else:
         assert False and "Invalid optimizer"
 
