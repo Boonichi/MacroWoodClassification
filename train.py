@@ -37,7 +37,8 @@ from timm.models import create_model
 from timm.loss import LabelSmoothingCrossEntropy
 from timm.utils import ModelEma
 from timm.data.mixup import Mixup
-import models.convnext        
+import models.convnext    
+import models.swin_transformer_v2    
 
 def main(args):
     print(args)
@@ -139,7 +140,10 @@ def main(args):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.finetune, map_location='cpu', check_hash=True)
         else:
-            checkpoint = torch.load(args.finetune, map_location='cpu')
+            if args.finetune.endswith("npz"):
+                checkpoint = np.load(args.finetune)
+            else:
+                checkpoint = torch.load(args.finetune, map_location='cpu')
 
         print("Load ckpt from %s" % args.finetune)
         checkpoint_model = None
@@ -157,7 +161,7 @@ def main(args):
                 del checkpoint_model[k]
         utils.load_state_dict(model, checkpoint_model, prefix=args.model_prefix)
     model.to(device)
-
+    
     # Exponential Mean Average Hyperparameter Model
     model_ema = None
     if args.model_ema:
