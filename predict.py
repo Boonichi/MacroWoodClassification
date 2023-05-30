@@ -13,12 +13,14 @@ from torchvision import transforms
 import torch
 
 import cv2
+import models.convnext
 
+CKPT_DIR = "./checkpoints/"
 os.makedirs('./results/', exist_ok=True)
 
 models = []
 device = torch.device("mps")
-nb_classes = 46
+nb_classes = 75
 
 class Model(object):
     def __init__(self, model = "resnet152d", prefix = "", ckpt_path = None, size = 224):
@@ -50,10 +52,12 @@ class Model(object):
         return output
     
 checkpoints = [
-    "./checkpoints/resnet152d/checkpoint-best.pth",
+    CKPT_DIR + "resnet152d/checkpoint-best.pth",
+    CKPT_DIR + "convnext_large/checkpoint-best.pth",
+    CKPT_DIR + "swin_large_patch4_window7_224_in22k/checkpoint-best.pth"
 ]
 
-names = ["resnet152d"]
+names = ["resnet152d", "convnext_large", "swin_large_patch4_window7_224_in22k"]
 
 print("Loading Model....")
 for cp, name in zip(checkpoints, names):
@@ -65,6 +69,7 @@ df = pd.read_csv(src + "test_dataset.csv")
 
 
 for index, model in enumerate(models):
+    print(model)
     outputs = []
     actuals = []
 
@@ -77,8 +82,8 @@ for index, model in enumerate(models):
         output = model.predict(wood_img)
 
         output = np.argmax(output) + 1
-        if output != label:
-            print(imgpath)
+        #if output != label:
+        #    print(imgpath)
         outputs.append(output)
         actuals.append(label)
     acc = accuracy_score(outputs, actuals)
